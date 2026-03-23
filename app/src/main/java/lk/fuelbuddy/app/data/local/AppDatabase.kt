@@ -18,7 +18,7 @@ interface FuelDao {
     suspend fun updatePrice(price: FuelPrice)
 }
 
-@Database(entities = [NewsArticle::class, FuelPrice::class], version = 1)
+@Database(entities = [NewsArticle::class, FuelPrice::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelDao(): FuelDao
 
