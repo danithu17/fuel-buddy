@@ -8,13 +8,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.TimeToLeave
@@ -64,17 +67,16 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(viewModel: FuelViewModel = viewModel()) {
-    val isOnboarded by viewModel.isOnboarded.collectAsState()
+    val isOnboarded by viewModel.isOnboardedState
     
-    if (!isOnboarded) {
-        WelcomeScreen(viewModel)
-    } else {
-        DashboardScreen(viewModel)
+    Crossfade(targetState = isOnboarded, label = "OnboardingTransition") { onboarded ->
+        if (!onboarded) {
+            WelcomeScreen(viewModel)
+        } else {
+            DashboardScreen(viewModel)
+        }
     }
 }
-
-import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
 
 @Composable
 fun WelcomeScreen(viewModel: FuelViewModel) {
@@ -93,10 +95,11 @@ fun WelcomeScreen(viewModel: FuelViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Image(
-                painter = painterResource(id = R.mipmap.ic_launcher),
+            Icon(
+                imageVector = Icons.Default.LocalGasStation,
                 contentDescription = null,
-                modifier = Modifier.size(150.dp).clip(RoundedCornerShape(32.dp)).padding(bottom = 16.dp)
+                tint = PetrolBlue,
+                modifier = Modifier.size(120.dp).padding(bottom = 16.dp)
             )
             
             Text(
@@ -159,17 +162,16 @@ fun DashboardScreen(viewModel: FuelViewModel) {
     val prices by viewModel.fuelPrices.collectAsState(initial = emptyList())
     var plateInput by remember { mutableStateOf(viewModel.getPlateNumber()) }
     val lastFuelDate = viewModel.getLastFuelDate()
+    
+    var selectedTab by remember { mutableStateOf(0) } // 0: Ceypetco, 1: LIOC
+    val company = if (selectedTab == 0) "Ceypetco" else "LIOC"
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        DarkBackground,
-                        Color(0xFF0D1B2A),
-                        Color(0xFF1B263B)
-                    )
+                    colors = listOf(DarkBackground, Color(0xFF0D1B2A))
                 )
             )
     ) {
@@ -177,20 +179,52 @@ fun DashboardScreen(viewModel: FuelViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .padding(20.dp)
+                .padding(horizontal = 20.dp)
         ) {
             HeaderSection()
 
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Company Tabs
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = PetrolBlue,
+                divider = {},
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        color = if (selectedTab == 0) PetrolBlue else DieselAmber
+                    )
+                }
+            ) {
+                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
+                    Text("CEYPETCO", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                }
+                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
+                    Text("LIOC", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Current Fuel Status
-            Row(modifier = Modifier.fillMaxWidth()) {
-                val petrol = prices.find { it.fuelType == "Petrol" }?.price ?: 350.0
-                val diesel = prices.find { it.fuelType == "Diesel" }?.price ?: 310.0
-                
-                PriceCard(Modifier.weight(1f), "Petrol", "Rs. $petrol", PetrolBlue)
-                Spacer(modifier = Modifier.width(16.dp))
-                PriceCard(Modifier.weight(1f), "Diesel", "Rs. $diesel", DieselAmber)
+            // Current Fuel Status (Grades 92, 95, Diesel)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                val p92 = prices.find { it.fuelType == "${company}_92" }?.price ?: 366.0
+                val p95 = prices.find { it.fuelType == "${company}_95" }?.price ?: 464.0
+                val dAuto = prices.find { it.fuelType == "${company}_Diesel" }?.price ?: 358.0
+                val dSuper = prices.find { it.fuelType == "${company}_Super" }?.price ?: 475.0
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    PriceCard(Modifier.weight(1f), "92 Petrol", "Rs. $p92", PetrolBlue)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    PriceCard(Modifier.weight(1f), "95 Petrol", "Rs. $p95", Color(0xFF00BFA5))
+                }
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    PriceCard(Modifier.weight(1f), "Auto Diesel", "Rs. $dAuto", DieselAmber)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    PriceCard(Modifier.weight(1f), "Super Diesel", "Rs. $dSuper", Color(0xFFFF9100))
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
