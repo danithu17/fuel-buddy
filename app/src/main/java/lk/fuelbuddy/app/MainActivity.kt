@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(viewModel: FuelViewModel = viewModel()) {
-    val isOnboarded = viewModel.isOnboarded()
+    val isOnboarded by viewModel.isOnboarded.collectAsState()
     
     if (!isOnboarded) {
         WelcomeScreen(viewModel)
@@ -72,6 +72,9 @@ fun MainScreen(viewModel: FuelViewModel = viewModel()) {
         DashboardScreen(viewModel)
     }
 }
+
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 
 @Composable
 fun WelcomeScreen(viewModel: FuelViewModel) {
@@ -90,11 +93,10 @@ fun WelcomeScreen(viewModel: FuelViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.LocalGasStation,
+            Image(
+                painter = painterResource(id = R.mipmap.ic_launcher),
                 contentDescription = null,
-                tint = PetrolBlue,
-                modifier = Modifier.size(120.dp).padding(bottom = 16.dp)
+                modifier = Modifier.size(150.dp).clip(RoundedCornerShape(32.dp)).padding(bottom = 16.dp)
             )
             
             Text(
