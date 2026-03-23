@@ -66,18 +66,13 @@ class NewsFetcherWorker(context: Context, params: WorkerParameters) : CoroutineW
 
     companion object {
         fun enqueue(context: Context) {
-            val constraints = Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
+            val request = PeriodicWorkRequestBuilder<NewsFetcherWorker>(1, TimeUnit.HOURS)
+                .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
-
-            val workRequest = PeriodicWorkRequestBuilder<NewsFetcherWorker>(1, TimeUnit.HOURS)
-                .setConstraints(constraints)
-                .build()
-
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                "FuelNewsFetcher",
+                "news_fetcher",
                 ExistingPeriodicWorkPolicy.KEEP,
-                workRequest
+                request
             )
         }
     }

@@ -47,6 +47,10 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         FuelAlarmReceiver.scheduleNextAlarm(getApplication())
     }
 
+    fun updateLastFuelDate(date: Long) {
+        prefs.edit().putLong("last_fuel_date", date).apply()
+    }
+
     private fun getPlatesFromPrefs(): List<String> = prefs.getString("plate_numbers", "")?.split(",")?.filter { it.isNotEmpty() } ?: emptyList()
     fun getLastFuelDate(): Long = prefs.getLong("last_fuel_date", 0L)
     fun isOnboarded(): Boolean = _isOnboarded.value

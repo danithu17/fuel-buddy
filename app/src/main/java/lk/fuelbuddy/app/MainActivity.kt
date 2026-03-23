@@ -11,6 +11,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -188,7 +190,7 @@ fun DashboardScreen(viewModel: FuelViewModel) {
 
             Spacer(modifier = Modifier.height(16.dp))
             
-            // Company Tabs
+            // Tabs (Ceypetco, LIOC, News)
             TabRow(
                 selectedTabIndex = selectedTab,
                 containerColor = Color.Transparent,
@@ -197,78 +199,84 @@ fun DashboardScreen(viewModel: FuelViewModel) {
                 indicator = { tabPositions ->
                     TabRowDefaults.Indicator(
                         Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = if (selectedTab == 0) PetrolBlue else DieselAmber
+                        color = when(selectedTab) { 
+                            0 -> PetrolBlue 
+                            1 -> DieselAmber 
+                            else -> Color.White 
+                        }
                     )
                 }
             ) {
                 Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }) {
-                    Text("CEYPETCO", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                    Text("CEYPETCO", modifier = Modifier.padding(12.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
                 Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }) {
-                    Text("LIOC", modifier = Modifier.padding(12.dp), fontWeight = FontWeight.Bold)
+                    Text("LIOC", modifier = Modifier.padding(12.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }) {
+                    Text("NEWS", modifier = Modifier.padding(12.dp), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Current Fuel Status (Grades 92, 95, Diesel)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                val p92 = prices.find { it.fuelType == "${company}_92" }?.price ?: 366.0
-                val p95 = prices.find { it.fuelType == "${company}_95" }?.price ?: 464.0
-                val dAuto = prices.find { it.fuelType == "${company}_Diesel" }?.price ?: 358.0
-                val dSuper = prices.find { it.fuelType == "${company}_Super" }?.price ?: 475.0
-
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    PriceCard(Modifier.weight(1f), "92 Petrol", "Rs. $p92", PetrolBlue)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    PriceCard(Modifier.weight(1f), "95 Petrol", "Rs. $p95", Color(0xFF00BFA5))
-                }
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    PriceCard(Modifier.weight(1f), "Auto Diesel", "Rs. $dAuto", DieselAmber)
-                    Spacer(modifier = Modifier.width(12.dp))
-                    PriceCard(Modifier.weight(1f), "Super Diesel", "Rs. $dSuper", Color(0xFFFF9100))
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Multi-Vehicle Intelligence
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                plates.forEach { plate ->
-                    VehicleIntelligenceCard(plate, lastFuelDate) {
-                        viewModel.removePlate(plate)
+            if (selectedTab == 2) {
+                // News Section
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(newsArticles) { article ->
+                        NewsItem(article.title, article.source)
                     }
                 }
-                
-                // Add New Vehicle Button
-                if (plates.size < 5) {
-                    Button(
-                        onClick = { viewModel.addPlate("NEW-0000") }, // Simplified for demo
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
-                    ) {
-                        Icon(Icons.Default.Add, null, tint = PetrolBlue)
-                        Text(" ADD VEHICLE", color = PetrolBlue)
+            } else {
+                // Prices & Vehicles Section
+                Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                    // Fuel Status
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        val p92 = prices.find { it.fuelType == "${company}_92" }?.price ?: 371.0
+                        val p95 = prices.find { it.fuelType == "${company}_95" }?.price ?: 456.0
+                        val dAuto = prices.find { it.fuelType == "${company}_Diesel" }?.price ?: 363.0
+                        val dSuper = prices.find { it.fuelType == "${company}_Super" }?.price ?: 468.0
+
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            PriceCard(Modifier.weight(1f), "92 Petrol", "Rs. $p92", PetrolBlue)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            PriceCard(Modifier.weight(1f), "95 Petrol", "Rs. $p95", Color(0xFF00BFA5))
+                        }
+                        Row(modifier = Modifier.fillMaxWidth()) {
+                            PriceCard(Modifier.weight(1f), "Auto Diesel", "Rs. $dAuto", DieselAmber)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            PriceCard(Modifier.weight(1f), "Super Diesel", "Rs. $dSuper", Color(0xFFFF9100))
+                        }
                     }
-                }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(32.dp))
 
-            // News Ticker
-            Text(
-                text = "LATEST UPDATES \u23F1",
-                style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.5f),
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(newsArticles) { article ->
-                    NewsItem(article.title, article.source)
+                    // Multi-Vehicle Intelligence
+                    Text("MY VEHICLES", color = Color.Gray, fontSize = 12.sp, modifier = Modifier.padding(bottom = 12.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        plates.forEach { plate ->
+                            VehicleIntelligenceCard(plate, lastFuelDate) {
+                                viewModel.removePlate(plate)
+                            }
+                        }
+                        
+                        // Add New Vehicle Button
+                        if (plates.size < 5) {
+                            Button(
+                                onClick = { viewModel.addPlate("WP-CAT9521") },
+                                modifier = Modifier.fillMaxWidth().height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.05f))
+                            ) {
+                                Icon(Icons.Default.Add, null, tint = PetrolBlue)
+                                Text(" ADD NEW VEHICLE", color = PetrolBlue, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
         }
