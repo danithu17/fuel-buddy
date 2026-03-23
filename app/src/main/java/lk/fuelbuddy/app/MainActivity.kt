@@ -1,0 +1,255 @@
+package lk.fuelbuddy.app
+
+import android.Manifest
+import android.os.Build
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocalGasStation
+import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.TimeToLeave
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.airbnb.lottie.compose.*
+import lk.fuelbuddy.app.ui.FuelViewModel
+import lk.fuelbuddy.app.ui.components.GlassCard
+import lk.fuelbuddy.app.ui.theme.DarkBackground
+import lk.fuelbuddy.app.ui.theme.DieselAmber
+import lk.fuelbuddy.app.ui.theme.FuelBuddyTheme
+import lk.fuelbuddy.app.ui.theme.PetrolBlue
+import lk.fuelbuddy.app.worker.NewsFetcherWorker
+import kotlinx.coroutines.delay
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // Request notifications permission for API 33+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val launcher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                // Handled
+            }
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        NewsFetcherWorker.enqueue(this)
+
+        setContent {
+            FuelBuddyTheme {
+                MainScreen()
+            }
+        }
+    }
+}
+
+@Composable
+fun MainScreen(viewModel: FuelViewModel = viewModel()) {
+    val newsArticles by viewModel.newsArticles.collectAsState(initial = emptyList())
+    val prices by viewModel.fuelPrices.collectAsState(initial = emptyList())
+    var plateInput by remember { mutableStateOf(viewModel.getPlateNumber()) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        DarkBackground,
+                        Color(0xFF0D1B2A),
+                        Color(0xFF1B263B)
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(20.dp)
+        ) {
+            HeaderSection()
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Current Fuel Status
+            Row(modifier = Modifier.fillMaxWidth()) {
+                val petrol = prices.find { it.fuelType == "Petrol" }?.price ?: 350.0
+                val diesel = prices.find { it.fuelType == "Diesel" }?.price ?: 310.0
+                
+                PriceCard(Modifier.weight(1f), "Petrol", "Rs. $petrol", PetrolBlue)
+                Spacer(modifier = Modifier.width(16.dp))
+                PriceCard(Modifier.weight(1f), "Diesel", "Rs. $diesel", DieselAmber)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Vehicle Intelligence Section
+            VehicleIntelligenceCard(plateInput) {
+                plateInput = it
+                viewModel.updatePlateNumber(it)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // News Ticker
+            Text(
+                text = "LATEST UPDATES \u23F1",
+                style = MaterialTheme.typography.labelMedium,
+                color = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(newsArticles) { article ->
+                    NewsItem(article.title, article.source)
+                }
+            }
+        }
+        
+        // Bottom Lottie success animation when data is fresh
+        SuccessAnimation()
+    }
+}
+
+@Composable
+fun HeaderSection() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "AAYUBOWAN \uD83D\uDE4F",
+                fontSize = 14.sp,
+                color = Color.LightGray
+            )
+            Text(
+                text = "FuelBuddy.lk",
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black,
+                color = Color.White
+            )
+        }
+        
+        // Animated icon using Lottie or standard
+        Icon(
+            imageVector = Icons.Default.LocalGasStation,
+            contentDescription = null,
+            tint = PetrolBlue,
+            modifier = Modifier.size(40.dp)
+        )
+    }
+}
+
+@Composable
+fun PriceCard(modifier: Modifier, type: String, price: String, accent: Color) {
+    GlassCard(modifier = modifier) {
+        Text(text = type, color = accent, fontWeight = FontWeight.SemiBold)
+        Text(text = price, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Text(text = "per Liter", fontSize = 12.sp, color = Color.Gray)
+    }
+}
+
+@Composable
+fun VehicleIntelligenceCard(plate: String, onPlateChanged: (String) -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+    val lastDigit = plate.filter { it.isDigit() }.lastOrNull()?.toString()?.toIntOrNull() ?: -1
+    
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.TimeToLeave, null, tint = Color.LightGray)
+            Spacer(modifier = Modifier.width(12.dp))
+            Text("Vehicle ID", color = Color.White, fontWeight = FontWeight.Bold)
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        OutlinedTextField(
+            value = plate,
+            onValueChange = { if (it.length <= 10) onPlateChanged(it) },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Enter Plate (e.g. CAB-4521)", color = Color.Gray) },
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedBorderColor = PetrolBlue,
+                unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            singleLine = true
+        )
+
+        if (lastDigit != -1) {
+            val isOdd = lastDigit % 2 != 0
+            val days = if (isOdd) "Mon, Wed, Fri" else "Tue, Thu, Sat"
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        if (isOdd) PetrolBlue.copy(alpha = 0.1f) else DieselAmber.copy(alpha = 0.1f),
+                        RoundedCornerShape(8.dp)
+                    )
+                    .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "NEXT FUEL DAY: $days",
+                    color = if (isOdd) PetrolBlue else DieselAmber,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun NewsItem(title: String, source: String) {
+    GlassCard(modifier = Modifier.fillMaxWidth()) {
+        Row {
+            Icon(Icons.Default.Newspaper, null, modifier = Modifier.size(20.dp), tint = Color.LightGray)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(source.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Black, color = PetrolBlue)
+        }
+        Text(
+            text = title,
+            color = Color.White,
+            fontSize = 14.sp,
+            maxLines = 2,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
+@Composable
+fun SuccessAnimation() {
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.success)) // Placeholder logic
+    val progress by animateLottieCompositionAsState(composition)
+    
+    // In a real app, you'd show this on success events
+}
