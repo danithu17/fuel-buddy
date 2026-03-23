@@ -21,6 +21,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalGasStation
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.TimeToLeave
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -142,7 +144,7 @@ fun WelcomeScreen(viewModel: FuelViewModel) {
             Button(
                 onClick = {
                     if (plate.isNotEmpty()) {
-                        viewModel.updatePlateNumber(plate)
+                        viewModel.addPlate(plate)
                         viewModel.updateLastFuelDate(selectedDate)
                     }
                 },
@@ -161,7 +163,7 @@ fun WelcomeScreen(viewModel: FuelViewModel) {
 fun DashboardScreen(viewModel: FuelViewModel) {
     val newsArticles by viewModel.newsArticles.collectAsState(initial = emptyList())
     val prices by viewModel.fuelPrices.collectAsState(initial = emptyList())
-    var plateInput by remember { mutableStateOf(viewModel.getPlateNumber()) }
+    val plates by viewModel.platesState.collectAsState()
     val lastFuelDate = viewModel.getLastFuelDate()
     
     var selectedTab by remember { mutableStateOf(0) } // 0: Ceypetco, 1: LIOC
@@ -230,10 +232,25 @@ fun DashboardScreen(viewModel: FuelViewModel) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Vehicle Intelligence Section
-            VehicleIntelligenceCard(plateInput, lastFuelDate) {
-                plateInput = it
-                viewModel.updatePlateNumber(it)
+            // Multi-Vehicle Intelligence
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                plates.forEach { plate ->
+                    VehicleIntelligenceCard(plate, lastFuelDate) {
+                        viewModel.removePlate(plate)
+                    }
+                }
+                
+                // Add New Vehicle Button
+                if (plates.size < 5) {
+                    Button(
+                        onClick = { viewModel.addPlate("NEW-0000") }, // Simplified for demo
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Icon(Icons.Default.Add, null, tint = PetrolBlue)
+                        Text(" ADD VEHICLE", color = PetrolBlue)
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -300,15 +317,21 @@ fun PriceCard(modifier: Modifier, type: String, price: String, accent: Color) {
 }
 
 @Composable
-fun VehicleIntelligenceCard(plate: String, lastPump: Long, onPlateChanged: (String) -> Unit) {
-    var isFocused by remember { mutableStateOf(false) }
+fun VehicleIntelligenceCard(plate: String, lastPump: Long, onDelete: () -> Unit) {
     val lastDigit = plate.filter { it.isDigit() }.lastOrNull()?.toString()?.toIntOrNull() ?: -1
     
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.TimeToLeave, null, tint = Color.LightGray)
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Vehicle ID: $plate", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("Vehicle ID: $plate", color = Color.White, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            
+            Icon(
+                Icons.Default.Delete, 
+                contentDescription = "Delete", 
+                tint = Color.Red.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp).clickable { onDelete() }
+            )
         }
         
         if (lastPump != 0L) {
