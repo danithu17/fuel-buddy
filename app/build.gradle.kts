@@ -51,7 +51,6 @@ android {
 }
 
 dependencies {
-    val compose_version = "1.6.1"
     val room_version = "2.6.1"
     val work_version = "2.9.0"
 
