@@ -42,6 +42,7 @@ import lk.fuelbuddy.app.ui.theme.FuelBuddyTheme
 import lk.fuelbuddy.app.ui.theme.PetrolBlue
 import lk.fuelbuddy.app.worker.NewsFetcherWorker
 import kotlinx.coroutines.delay
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,7 +70,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(viewModel: FuelViewModel = viewModel()) {
     val isOnboarded by viewModel.isOnboardedState
     
-    Crossfade(targetState = isOnboarded, label = "OnboardingTransition") { onboarded ->
+    Crossfade(targetState = isOnboarded, label = "OnboardingTransition") { onboarded: Boolean ->
         if (!onboarded) {
             WelcomeScreen(viewModel)
         } else {

@@ -9,6 +9,8 @@ import lk.fuelbuddy.app.data.local.AppDatabase
 import lk.fuelbuddy.app.data.local.FuelPrice
 import lk.fuelbuddy.app.data.local.NewsArticle
 import lk.fuelbuddy.app.notifications.FuelAlarmReceiver
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.State
 
 class FuelViewModel(application: Application) : AndroidViewModel(application) {
     private val db = AppDatabase.getDatabase(application)
