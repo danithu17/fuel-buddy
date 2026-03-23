@@ -3,19 +3,20 @@ package lk.fuelbuddy.app.data.local
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "news_articles")
-data class NewsArticle(
-    @PrimaryKey val id: String,
-    val title: String,
-    val link: String,
-    val pubDate: Long,
-    val source: String,
-    val content: String? = null
+@Entity(tableName = "vehicles")
+data class Vehicle(
+    @PrimaryKey val plateNumber: String,
+    val fuelType: String, // e.g., "92 Petrol"
+    val lastPumpDate: Long = 0L,
+    val qrCodeUri: String? = null,
+    val weeklyQuota: Double = 20.0
 )
 
-@Entity(tableName = "fuel_prices")
-data class FuelPrice(
-    @PrimaryKey val fuelType: String, // Petrol, Diesel
-    val price: Double,
-    val lastUpdated: Long
+@Entity(tableName = "fuel_logs")
+data class FuelLog(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0L,
+    val plateNumber: String,
+    val liters: Double,
+    val date: Long,
+    val cost: Double = 0.0
 )

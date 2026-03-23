@@ -5,20 +5,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FuelDao {
-    @Query("SELECT * FROM news_articles ORDER BY pubDate DESC")
-    fun getAllNews(): Flow<List<NewsArticle>>
+    @Query("SELECT * FROM vehicles")
+    fun getAllVehicles(): Flow<List<Vehicle>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertNews(articles: List<NewsArticle>)
+    suspend fun insertVehicle(vehicle: Vehicle)
 
-    @Query("SELECT * FROM fuel_prices")
-    fun getPrices(): Flow<List<FuelPrice>>
+    @Delete
+    suspend fun deleteVehicle(vehicle: Vehicle)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun updatePrice(price: FuelPrice)
+    @Query("SELECT * FROM fuel_logs WHERE plateNumber = :plate ORDER BY date DESC")
+    fun getLogsForVehicle(plate: String): Flow<List<FuelLog>>
+
+    @Insert
+    suspend fun insertLog(log: FuelLog)
 }
 
-@Database(entities = [NewsArticle::class, FuelPrice::class], version = 1, exportSchema = false)
+@Database(entities = [Vehicle::class, FuelLog::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun fuelDao(): FuelDao
 

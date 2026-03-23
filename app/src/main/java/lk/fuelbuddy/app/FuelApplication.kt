@@ -14,10 +14,10 @@ class FuelApplication : Application() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Fuel Alerts"
-            val descriptionText = "Notifications for your fuel days and price updates"
+            val name = "Fuel Reminders"
+            val descriptionText = "Notifications for your fuel days"
             val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel("FUEL_ALERTS", name, importance).apply {
+            val channel = NotificationChannel("fuel_reminders", name, importance).apply {
                 description = descriptionText
             }
             val notificationManager: NotificationManager =

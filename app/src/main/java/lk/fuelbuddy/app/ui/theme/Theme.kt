@@ -11,6 +11,8 @@ val DarkBackground = Color(0xFF121212)
 val GlassWhite = Color(0xFFFFFFFF).copy(alpha = 0.1f)
 val GlassOutline = Color(0xFFFFFFFF).copy(alpha = 0.2f)
 
+fun Typography() = androidx.compose.material3.Typography()
+
 private val DarkColorScheme = darkColorScheme(
     primary = PetrolBlue,
     secondary = DieselAmber,
