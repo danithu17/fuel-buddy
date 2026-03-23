@@ -64,9 +64,99 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(viewModel: FuelViewModel = viewModel()) {
+    val isOnboarded = viewModel.isOnboarded()
+    
+    if (!isOnboarded) {
+        WelcomeScreen(viewModel)
+    } else {
+        DashboardScreen(viewModel)
+    }
+}
+
+@Composable
+fun WelcomeScreen(viewModel: FuelViewModel) {
+    var plate by remember { mutableStateOf("") }
+    var selectedDate by remember { mutableStateOf(System.currentTimeMillis()) }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBackground)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocalGasStation,
+                contentDescription = null,
+                tint = PetrolBlue,
+                modifier = Modifier.size(120.dp).padding(bottom = 16.dp)
+            )
+            
+            Text(
+                "Welcome to FuelBuddy",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Text(
+                "Let's set up your profile",
+                fontSize = 14.sp,
+                color = Color.Gray,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
+            
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = plate,
+                    onValueChange = { plate = it.uppercase() },
+                    label = { Text("Plate Number (e.g. CAB-1234)", color = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
+                )
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Text("Last Fuel Pump Date", color = Color.LightGray, fontSize = 12.sp)
+                Button(
+                    onClick = { /* Simple prompt or logic */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue.copy(alpha = 0.1f))
+                ) {
+                    Text("Today (Change if needed)", color = PetrolBlue)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(32.dp))
+            
+            Button(
+                onClick = {
+                    if (plate.isNotEmpty()) {
+                        viewModel.updatePlateNumber(plate)
+                        viewModel.updateLastFuelDate(selectedDate)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue),
+                enabled = plate.isNotEmpty()
+            ) {
+                Text("START MY JOURNEY", fontWeight = FontWeight.Black)
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardScreen(viewModel: FuelViewModel) {
     val newsArticles by viewModel.newsArticles.collectAsState(initial = emptyList())
     val prices by viewModel.fuelPrices.collectAsState(initial = emptyList())
     var plateInput by remember { mutableStateOf(viewModel.getPlateNumber()) }
+    val lastFuelDate = viewModel.getLastFuelDate()
 
     Box(
         modifier = Modifier
@@ -104,7 +194,7 @@ fun MainScreen(viewModel: FuelViewModel = viewModel()) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Vehicle Intelligence Section
-            VehicleIntelligenceCard(plateInput) {
+            VehicleIntelligenceCard(plateInput, lastFuelDate) {
                 plateInput = it
                 viewModel.updatePlateNumber(it)
             }
@@ -173,7 +263,7 @@ fun PriceCard(modifier: Modifier, type: String, price: String, accent: Color) {
 }
 
 @Composable
-fun VehicleIntelligenceCard(plate: String, onPlateChanged: (String) -> Unit) {
+fun VehicleIntelligenceCard(plate: String, lastPump: Long, onPlateChanged: (String) -> Unit) {
     var isFocused by remember { mutableStateOf(false) }
     val lastDigit = plate.filter { it.isDigit() }.lastOrNull()?.toString()?.toIntOrNull() ?: -1
     
@@ -181,27 +271,19 @@ fun VehicleIntelligenceCard(plate: String, onPlateChanged: (String) -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.TimeToLeave, null, tint = Color.LightGray)
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Vehicle ID", color = Color.White, fontWeight = FontWeight.Bold)
+            Text("Vehicle ID: $plate", color = Color.White, fontWeight = FontWeight.Bold)
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        if (lastPump != 0L) {
+            val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+            Text(
+                "Last Pumped: ${sdf.format(java.util.Date(lastPump))}",
+                fontSize = 11.sp,
+                color = Color.LightGray,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         
-        OutlinedTextField(
-            value = plate,
-            onValueChange = { if (it.length <= 10) onPlateChanged(it) },
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = { Text("Enter Plate (e.g. CAB-4521)", color = Color.Gray) },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedBorderColor = PetrolBlue,
-                unfocusedBorderColor = Color.White.copy(alpha = 0.2f)
-            ),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            singleLine = true
-        )
-
         if (lastDigit != -1) {
             val isOdd = lastDigit % 2 != 0
             val days = if (isOdd) "Mon, Wed, Fri" else "Tue, Thu, Sat"
