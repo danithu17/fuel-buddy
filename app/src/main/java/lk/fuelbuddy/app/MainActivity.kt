@@ -365,9 +365,14 @@ fun QRPassDetail(vehicle: Vehicle, onDismiss: () -> Unit) {
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Black)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = PetrolBlue,
+                    contentColor = DarkBackground
+                )
             ) {
-                Text("DONE", fontWeight = FontWeight.Bold)
+                Icon(Icons.Default.Done, null, modifier = Modifier.size(20.dp), tint = DarkBackground)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("CLOSE PASS", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
