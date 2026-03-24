@@ -416,7 +416,7 @@ fun AddVehicleDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
     var plate by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("92 Petrol") }
     Dialog(onDismissRequest = onDismiss) {
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), isSolid = true) {
             Text("Add New Vehicle", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
@@ -452,7 +452,7 @@ fun FuelLogDialog(vehicle: Vehicle, onDismiss: () -> Unit, onLog: (Double, Doubl
     var liters by remember { mutableStateOf("") }
     var cost by remember { mutableStateOf("") }
     Dialog(onDismissRequest = onDismiss) {
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
+        GlassCard(modifier = Modifier.fillMaxWidth(), isSolid = true) {
             Text("Log Fuel for ${vehicle.plateNumber}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
