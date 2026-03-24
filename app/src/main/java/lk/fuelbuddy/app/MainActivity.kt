@@ -70,7 +70,15 @@ fun MainScreen(viewModel: FuelViewModel = viewModel()) {
 
 @Composable
 fun WelcomeScreen(viewModel: FuelViewModel) {
+    var step by remember { mutableStateOf(1) }
     var plate by remember { mutableStateOf("") }
+    var selectedType by remember { mutableStateOf("92 Petrol") }
+    var qrUri by remember { mutableStateOf<String?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        qrUri = uri?.toString()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         AnimatedBackground()
         Column(
@@ -78,26 +86,91 @@ fun WelcomeScreen(viewModel: FuelViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text("FuelBuddy SL", fontSize = 40.sp, fontWeight = FontWeight.Black, color = Color.White)
-            Text("Track your fuel, avoid the lines.", color = Color.White.copy(0.6f), modifier = Modifier.padding(bottom = 40.dp))
-            
-            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = plate,
-                    onValueChange = { plate = it.uppercase() },
-                    label = { Text("Plate Number", color = Color.Gray) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
-                )
-                Spacer(modifier = Modifier.height(24.dp))
-                Button(
-                    onClick = { if (plate.isNotEmpty()) viewModel.addVehicle(plate, "92 Petrol") },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue)
-                ) {
-                    Text("GET STARTED", fontWeight = FontWeight.Bold)
+            AnimatedContent(targetState = step, label = "Onboarding") { currentStep ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    when (currentStep) {
+                        1 -> {
+                            Text("Welcome to\nFuelBuddy", fontSize = 48.sp, fontWeight = FontWeight.Black, color = Color.White, lineHeight = 50.sp)
+                            Text("The smartest way to bridge the fuel gap in Sri Lanka.", color = Color.White.copy(0.6f), modifier = Modifier.padding(vertical = 24.dp))
+                            Button(
+                                onClick = { step = 2 },
+                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue)
+                            ) { Text("START MY JOURNEY", fontWeight = FontWeight.ExtraBold) }
+                        }
+                        2 -> {
+                            Text("Vehicle Info", fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Text("Tell us about your ride.", color = Color.White.copy(0.6f), modifier = Modifier.padding(top = 8.dp, bottom = 32.dp))
+                            
+                            GlassCard(modifier = Modifier.fillMaxWidth(), isSolid = true) {
+                                OutlinedTextField(
+                                    value = plate,
+                                    onValueChange = { plate = it.uppercase() },
+                                    label = { Text("Plate (e.g. CAB-1234)") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                Text("Fuel Type", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PetrolBlue)
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    listOf("92 Petrol", "95 Petrol", "Auto Diesel", "Super Diesel").forEach { type ->
+                                        FilterChip(
+                                            selected = selectedType == type,
+                                            onClick = { selectedType = type },
+                                            label = { Text(type.take(6)) }
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(32.dp))
+                            Button(
+                                onClick = { if (plate.length >= 3) step = 3 },
+                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue)
+                            ) { Text("CONTINUE", fontWeight = FontWeight.Bold) }
+                        }
+                        3 -> {
+                            Text("Fuel Pass QR", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text("Upload your Fuel Pass QR to continue.", color = Color.White.copy(0.5f), modifier = Modifier.padding(vertical = 12.dp))
+                            
+                            Box(
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .clip(RoundedCornerShape(24.dp))
+                                    .background(Color.White.copy(0.1f))
+                                    .clickable { launcher.launch("image/*") },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (qrUri != null) {
+                                    Icon(Icons.Default.QrCode, null, modifier = Modifier.size(100.dp), tint = PetrolBlue)
+                                    Text("Image Selected", color = Color.White, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp), fontSize = 10.sp)
+                                } else {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(48.dp), tint = Color.White.copy(0.3f))
+                                        Text("TAP TO SELECT", color = Color.White.copy(0.3f), modifier = Modifier.padding(top = 8.dp), fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(40.dp))
+                            
+                            Button(
+                                onClick = { if (qrUri != null) viewModel.addVehicle(plate, selectedType, qrUri) },
+                                modifier = Modifier.fillMaxWidth().height(60.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PetrolBlue),
+                                enabled = qrUri != null
+                            ) { Text("FINISH SETUP", fontWeight = FontWeight.Bold) }
+                            
+                            TextButton(onClick = { step = 2 }) { Text("Back", color = Color.White.copy(0.5f)) }
+                        }
+                    }
                 }
             }
         }
@@ -172,8 +245,8 @@ fun DashboardScreen(viewModel: FuelViewModel) {
         if (showAddVehicle) {
             AddVehicleDialog(
                 onDismiss = { showAddVehicle = false }, 
-                onAdd = { plate, type ->
-                    viewModel.addVehicle(plate, type)
+                onAdd = { plate, type, qr ->
+                    viewModel.addVehicle(plate, type, qr)
                     showSuccess = true
                 }
             )
@@ -243,16 +316,12 @@ fun PremiumVehicleCard(
     GlassCard(modifier = Modifier.fillMaxWidth().animateContentSize().clickable { expanded = !expanded }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(vehicle.plateNumber, fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White)
-                Text(vehicle.fuelType, fontSize = 12.sp, color = PetrolBlue, fontWeight = FontWeight.Bold)
+                Text(vehicle.plateNumber, fontSize = 28.sp, fontWeight = FontWeight.Black, color = Color.White)
+                Text(vehicle.fuelType.uppercase(), fontSize = 11.sp, color = PetrolBlue, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp)
             }
-            if (vehicle.qrCodeUri == null) {
-                IconButton(onClick = onPhotoClick) {
-                    Icon(Icons.Default.AddAPhoto, null, tint = Color.White.copy(0.5f))
-                }
-            } else {
+            if (vehicle.qrCodeUri != null) {
                 IconButton(onClick = onQRClick) {
-                    Icon(Icons.Default.QrCode, null, tint = PetrolBlue)
+                    Icon(Icons.Default.QrCode, null, tint = PetrolBlue, modifier = Modifier.size(28.dp))
                 }
             }
             IconButton(onClick = onDelete) {
@@ -260,28 +329,43 @@ fun PremiumVehicleCard(
             }
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         // Quota Progress Bar
         Column {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Weekly Quota", fontSize = 11.sp, color = Color.White.copy(0.6f))
-                Text("${String.format("%.1f", weeklyLiters)} / ${vehicle.weeklyQuota} L", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Text("WEEKLY QUOTA", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.4f), letterSpacing = 1.sp)
+                Text("${String.format("%.1f", weeklyLiters)} / ${vehicle.weeklyQuota} L", fontSize = 12.sp, fontWeight = FontWeight.Black, color = Color.White)
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             val progress = (weeklyLiters / vehicle.weeklyQuota).toFloat().coerceIn(0f, 1f)
-            Box(modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color.White.copy(0.1f))) {
+            Box(modifier = Modifier.fillMaxWidth().height(10.dp).clip(CircleShape).background(Color.White.copy(0.05f))) {
                 Box(modifier = Modifier.fillMaxWidth(progress).fillMaxHeight().background(
-                    Brush.horizontalGradient(listOf(PetrolBlue, Color(0xFF00BFA5)))
+                    Brush.horizontalGradient(listOf(PetrolBlue, Color(0xFF00E5FF)))
                 ))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            InfoChip(Icons.Default.CalendarToday, fuelDays, if (isOdd) PetrolBlue else DieselAmber)
-            InfoChip(Icons.Default.History, "${logs.size} Logs", Color.White.copy(0.4f))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBy(12.dp)) {
+            // Fuel Day Badge
+            Box(modifier = Modifier.weight(1f).background(Color.White.copy(0.05f), RoundedCornerShape(12.dp)).padding(12.dp)) {
+                Column {
+                    Text("FUEL DAYS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.3f))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(fuelDays, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (isOdd) PetrolBlue else DieselAmber)
+                }
+            }
+            
+            // Log Count Badge
+            Box(modifier = Modifier.weight(1f).background(Color.White.copy(0.05f), RoundedCornerShape(12.dp)).padding(12.dp)) {
+                Column {
+                    Text("ACTIVITY", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.3f))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("${logs.size} Pumps Logged", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White.copy(0.8f))
+                }
+            }
         }
 
         if (expanded && logs.isNotEmpty()) {
@@ -417,9 +501,15 @@ fun ExpenseGraph(logs: List<FuelLog>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddVehicleDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
+fun AddVehicleDialog(onDismiss: () -> Unit, onAdd: (String, String, String) -> Unit) {
     var plate by remember { mutableStateOf("") }
     var selectedType by remember { mutableStateOf("92 Petrol") }
+    var qrUri by remember { mutableStateOf<String?>(null) }
+    
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        qrUri = uri?.toString()
+    }
+
     Dialog(onDismissRequest = onDismiss) {
         GlassCard(modifier = Modifier.fillMaxWidth(), isSolid = true) {
             Text("Add New Vehicle", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color.White)
@@ -442,11 +532,29 @@ fun AddVehicleDialog(onDismiss: () -> Unit, onAdd: (String, String) -> Unit) {
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("QR Pass Photo", fontSize = 12.sp, color = Color.Gray)
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(1.dp, if(qrUri != null) PetrolBlue else Color.White.copy(0.2f), RoundedCornerShape(12.dp))
+                    .clickable { launcher.launch("image/*") },
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(if(qrUri != null) Icons.Default.CheckCircle else Icons.Default.Upload, null, tint = if(qrUri != null) PetrolBlue else Color.White.copy(0.4f))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if(qrUri != null) "QR Uploaded" else "UPLOAD QR (Required)", color = if(qrUri != null) PetrolBlue else Color.White.copy(0.4f), fontWeight = FontWeight.Bold)
+                }
+            }
             Spacer(modifier = Modifier.height(24.dp))
             Button(
-                onClick = { onAdd(plate, selectedType); onDismiss() },
+                onClick = { onAdd(plate, selectedType, qrUri!!); onDismiss() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = plate.isNotEmpty()
+                enabled = plate.isNotEmpty() && qrUri != null
             ) { Text("SAVE VEHICLE") }
         }
     }

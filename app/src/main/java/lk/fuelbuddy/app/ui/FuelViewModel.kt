@@ -30,9 +30,9 @@ class FuelViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addVehicle(plate: String, type: String) {
+    fun addVehicle(plate: String, type: String, qrUri: String? = null) {
         viewModelScope.launch {
-            dao.insertVehicle(Vehicle(plate.uppercase(), type))
+            dao.insertVehicle(Vehicle(plate.uppercase(), type, qrCodeUri = qrUri))
             FuelAlarmReceiver.scheduleNextAlarm(getApplication())
         }
     }
